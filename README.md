@@ -71,7 +71,7 @@ That one character is the difference between plug-and-play and a 3200 MT/s fallb
 ## Using the Guide
 
 ```
-cudimm-guide.html    # Open in any browser — no server required
+[cudimm-guide.html ](https://gohan472.github.io/cudimm-guide/)   # Open in any browser — no server required
 ```
 
 The guide is a single self-contained HTML file. No build step, no npm, no CDN calls at runtime (fonts load from Google Fonts on first open). Works fully offline once cached.
