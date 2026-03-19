@@ -1,0 +1,2064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CUDIMM & CSODIMM Explained — Consumer Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=Barlow+Condensed:wght@300;500;700;900&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #0b0c0f;
+      --bg2:       #111318;
+      --bg3:       #181b22;
+      --border:    #2a2d38;
+      --amber:     #f5a623;
+      --amber-dim: #a86e10;
+      --cyan:      #3dd6f5;
+      --green:     #39d353;
+      --red:       #f05f5f;
+      --text:      #d4d8e2;
+      --muted:     #636a80;
+      --white:     #f0f2f8;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Barlow', sans-serif;
+      font-weight: 300;
+      line-height: 1.7;
+      font-size: 16px;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.025;
+      pointer-events: none;
+      z-index: 999;
+    }
+    .scanlines {
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 4px);
+    }
+
+    /* NAV */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(11,12,15,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.55rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .header-tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--amber);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      border: 1px solid var(--amber-dim);
+      padding: 0.2rem 0.5rem;
+      flex-shrink: 0;
+    }
+    .header-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    /* HERO */
+    .hero {
+      position: relative;
+      background: linear-gradient(160deg, #0d1018 0%, #0b0c0f 60%, #0f1118 100%);
+      padding: 5rem 2rem 4rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .hero::after {
+      content: 'DDR5';
+      position: absolute;
+      bottom: -0.35em;
+      right: 3%;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 15rem;
+      font-weight: 900;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(245,166,35,0.06);
+      letter-spacing: -0.04em;
+      pointer-events: none;
+      user-select: none;
+      line-height: 1;
+    }
+    .hero-eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--amber);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+      display: inline-block;
+      animation: fadeUp 0.6s ease both;
+    }
+    .hero h1 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 900;
+      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      line-height: 0.95;
+      color: var(--white);
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      animation: fadeUp 0.7s 0.1s ease both;
+    }
+    .hero h1 em { font-style: normal; color: var(--amber); }
+    .hero-sub {
+      max-width: 620px;
+      margin: 0 auto 2rem;
+      font-size: 1.05rem;
+      color: var(--muted);
+      font-weight: 400;
+      animation: fadeUp 0.7s 0.2s ease both;
+    }
+    .hero-chips {
+      display: flex;
+      justify-content: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      animation: fadeUp 0.7s 0.3s ease both;
+    }
+    .chip {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.25rem 0.75rem;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+    .chip.amber { border-color: var(--amber-dim); color: var(--amber); }
+    .chip.cyan  { border-color: #1a6070; color: var(--cyan); }
+    .chip.green { border-color: #1a5a30; color: var(--green); }
+
+    /* MAIN */
+    main { max-width: 920px; margin: 0 auto; padding: 0 1.5rem 6rem; }
+
+    /* SECTIONS */
+    section { padding: 4rem 0 0; }
+    .section-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--amber);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    h2 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      color: var(--white);
+      line-height: 1.1;
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      margin-bottom: 1.2rem;
+    }
+    h3 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.3rem;
+      color: var(--white);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 0.6rem;
+      margin-top: 1.5rem;
+    }
+    p { margin-bottom: 1rem; }
+    p:last-child { margin-bottom: 0; }
+    strong { color: var(--white); font-weight: 500; }
+
+    /* CALLOUT */
+    .callout {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--amber);
+      padding: 1.2rem 1.4rem;
+      margin: 1.8rem 0;
+      font-size: 0.95rem;
+    }
+    .callout.cyan  { border-left-color: var(--cyan); }
+    .callout.green { border-left-color: var(--green); }
+    .callout.red   { border-left-color: var(--red); }
+    .callout.purple{ border-left-color: #a070f0; }
+    .callout-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      color: var(--amber);
+    }
+    .callout.cyan   .callout-title { color: var(--cyan); }
+    .callout.green  .callout-title { color: var(--green); }
+    .callout.red    .callout-title { color: var(--red); }
+    .callout.purple .callout-title { color: #a070f0; }
+
+    /* FLOW DIAGRAM */
+    .flow-diagram {
+      margin: 2rem 0;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+    }
+    .flow-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+    .flow-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 1.4rem;
+    }
+    .flow-row:last-child { margin-bottom: 0; }
+    .flow-node {
+      padding: 0.5rem 0.8rem;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
+    .flow-node.cpu   { border-color: var(--cyan);  color: var(--cyan); }
+    .flow-node.ckd   { border-color: var(--amber); color: var(--amber); background: #130e00; }
+    .flow-node.ram   { border-color: var(--border); color: var(--text); }
+    .flow-node.ram.good { border-color: var(--green); color: var(--green); }
+    .flow-arrow { flex: 1; height: 1px; position: relative; min-width: 24px; }
+    .flow-arrow .line { position: absolute; top: 50%; left: 0; right: 0; height: 1px; }
+    .flow-arrow .arrowhead { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 0; height: 0; }
+    .flow-arrow.noisy .line { background: var(--red); }
+    .flow-arrow.noisy .arrowhead { border-left: 6px solid var(--red); border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
+    .flow-arrow.clean .line { background: var(--amber); }
+    .flow-arrow.clean .arrowhead { border-left: 6px solid var(--amber); border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
+    .flow-arrow.ok    .line { background: var(--green); }
+    .flow-arrow.ok    .arrowhead { border-left: 6px solid var(--green); border-top: 4px solid transparent; border-bottom: 4px solid transparent; }
+    .flow-sub {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.55rem;
+      position: absolute;
+      top: -1.2em;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      letter-spacing: 0.08em;
+    }
+    .flow-arrow.noisy .flow-sub { color: var(--red); }
+    .flow-arrow.clean .flow-sub { color: var(--amber); }
+    .flow-arrow.ok    .flow-sub { color: var(--green); }
+    .flow-row-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      width: 110px;
+      flex-shrink: 0;
+    }
+
+    /* DIAGRAM WRAP */
+    .diagram-wrap {
+      margin: 2.5rem 0;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      padding: 2rem;
+    }
+    .diagram-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    .diagram-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 580px) { .diagram-grid { grid-template-columns: 1fr; } }
+
+    .dimm-card {
+      position: relative;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      padding: 1.5rem 1.2rem;
+    }
+    .dimm-card-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .dimm-card.standard .dimm-card-label { color: var(--muted); }
+    .dimm-card.clocked  .dimm-card-label { color: var(--amber); }
+
+    .pcb {
+      height: 80px;
+      border: 1px solid;
+      border-radius: 2px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      gap: 6px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .dimm-card.standard .pcb { border-color: #2a3a4a; background: #0c1620; }
+    .dimm-card.clocked  .pcb { border-color: #3a3010; background: #130e00; }
+
+    .chip-block {
+      height: 52px;
+      flex: 1;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .dimm-card.standard .chip-block { background: #0d2030; border: 1px solid #1a3a50; }
+    .dimm-card.clocked  .chip-block { background: #1a1000; border: 1px solid #3a2800; }
+    .chip-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.45rem;
+      letter-spacing: 0.1em;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+    }
+    .dimm-card.standard .chip-label { color: #2a6080; }
+    .dimm-card.clocked  .chip-label { color: #604020; }
+
+    .ckd-chip {
+      width: 32px;
+      height: 52px;
+      background: #3a2a00;
+      border: 1px solid var(--amber);
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .ckd-chip::before, .ckd-chip::after {
+      content: '';
+      position: absolute;
+      left: -6px;
+      width: 5px;
+      height: 2px;
+      background: var(--amber-dim);
+    }
+    .ckd-chip::before { top: 14px; box-shadow: 0 8px 0 var(--amber-dim), 0 16px 0 var(--amber-dim); }
+    .ckd-chip::after  { right: -6px; left: auto; top: 14px; box-shadow: 0 8px 0 var(--amber-dim), 0 16px 0 var(--amber-dim); }
+    .ckd-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.4rem;
+      color: var(--amber);
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .ecc-chip {
+      width: 24px;
+      height: 36px;
+      border-radius: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .ecc-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.38rem;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .pcb-notch {
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 18px;
+      height: 10px;
+      border-radius: 2px 2px 0 0;
+    }
+    .dimm-card.standard .pcb-notch { background: #1a3048; }
+    .dimm-card.clocked  .pcb-notch { background: #2a1800; }
+
+    .contacts {
+      position: absolute;
+      bottom: 0;
+      left: 8px;
+      right: 8px;
+      height: 8px;
+      display: flex;
+      gap: 3px;
+    }
+    .contact { flex: 1; height: 100%; border-radius: 1px 1px 0 0; }
+    .dimm-card.standard .contact { background: #1e4a6a; }
+    .dimm-card.clocked  .contact { background: #3a2200; }
+
+    .dimm-specs { display: flex; flex-direction: column; gap: 0.4rem; }
+    .spec-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.8rem; gap: 0.5rem; }
+    .spec-key { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--muted); letter-spacing: 0.05em; white-space: nowrap; }
+    .spec-val { font-weight: 500; text-align: right; }
+    .spec-val.good   { color: var(--green); }
+    .spec-val.warn   { color: var(--amber); }
+    .spec-val.normal { color: var(--text); }
+    .spec-val.purple { color: #a070f0; }
+
+    /* TABLE */
+    .table-wrap { margin: 2rem 0; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    thead tr { background: var(--bg2); border-bottom: 1px solid var(--border); }
+    thead th { padding: 0.8rem 1rem; text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+    thead th.col-oem      { color: #5a7090; }
+    thead th.col-standard { color: var(--cyan); }
+    thead th.col-clocked  { color: var(--amber); }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+    tbody tr:hover { background: var(--bg2); }
+    tbody td { padding: 0.75rem 1rem; vertical-align: top; }
+    tbody td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.05em; white-space: nowrap; }
+    .badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      padding: 0.15rem 0.4rem;
+      letter-spacing: 0.08em;
+    }
+    .badge.green  { background: rgba(57,211,83,0.1);  color: var(--green);  border: 1px solid rgba(57,211,83,0.3); }
+    .badge.red    { background: rgba(240,95,95,0.1);  color: var(--red);    border: 1px solid rgba(240,95,95,0.3); }
+    .badge.amber  { background: rgba(245,166,35,0.1); color: var(--amber);  border: 1px solid rgba(245,166,35,0.3); }
+    .badge.cyan   { background: rgba(61,214,245,0.1); color: var(--cyan);   border: 1px solid rgba(61,214,245,0.3); }
+    .badge.purple { background: rgba(160,112,240,0.1);color: #a070f0;       border: 1px solid rgba(160,112,240,0.3); }
+    .badge.muted  { background: rgba(99,106,128,0.1); color: var(--muted);  border: 1px solid rgba(99,106,128,0.3); }
+
+    /* PN DECODER */
+    .pn-decoder {
+      font-family: 'IBM Plex Mono', monospace;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      padding: 1.8rem;
+      margin: 2rem 0;
+      overflow-x: auto;
+    }
+    .pn-decoder-title {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+    .pn-string {
+      font-size: clamp(0.65rem, 2vw, 0.85rem);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.5rem;
+      line-height: 1.8;
+      word-break: break-all;
+    }
+    .pn-string .seg-pc5   { color: var(--cyan); }
+    .pn-string .seg-speed { color: var(--amber); }
+    .pn-string .seg-grade { color: #a070f0; }
+    .pn-string .seg-type  { color: var(--green); }
+    .pn-string .seg-ver   { color: var(--red); }
+    .pn-string .seg-xt    { color: var(--muted); }
+    .pn-string .dash      { color: var(--border); }
+
+    .pn-legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.7rem;
+    }
+    .pn-leg-item { display: flex; gap: 0.7rem; align-items: flex-start; }
+    .pn-leg-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 0.35em;
+    }
+    .pn-leg-dot.cyan   { background: var(--cyan); }
+    .pn-leg-dot.amber  { background: var(--amber); }
+    .pn-leg-dot.purple { background: #a070f0; }
+    .pn-leg-dot.green  { background: var(--green); }
+    .pn-leg-dot.red    { background: var(--red); }
+    .pn-leg-dot.muted  { background: var(--muted); }
+    .pn-leg-text { font-size: 0.72rem; line-height: 1.4; color: var(--text); }
+    .pn-leg-text strong { color: var(--white); font-weight: 600; display: block; margin-bottom: 0.1rem; font-size: 0.75rem; }
+
+    /* LABEL RECONSTRUCTIONS */
+    .labels-wrap {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      margin: 2rem 0;
+    }
+
+    .label-card { background: var(--bg2); border: 1px solid var(--border); padding: 1.5rem; }
+    .label-card-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .label-card-title span { color: var(--amber); }
+
+    /* FAITHFUL LABEL REPRODUCTIONS */
+    .label-reconstruction {
+      position: relative;
+      background: #f5f4ef;
+      border: 1px solid #c8c0a8;
+      border-radius: 3px;
+      padding: 0.9rem 1.1rem;
+      font-family: 'IBM Plex Mono', monospace;
+      color: #1a1a1a;
+      font-size: clamp(0.6rem, 1.5vw, 0.72rem);
+      line-height: 1.55;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.5);
+      max-width: 500px;
+    }
+    .label-reconstruction::before {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px; right: 3px; bottom: 3px;
+      border: 1px solid rgba(0,0,0,0.07);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+    .label-mfr {
+      font-size: clamp(0.75rem, 2vw, 0.9rem);
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+      letter-spacing: -0.01em;
+    }
+    .label-mfr.micron  { color: #c41230; }
+    .label-mfr.kingston { color: #c41230; font-style: italic; }
+    .label-mfr.hynix   { color: #003087; }
+    .label-line { line-height: 1.4; letter-spacing: 0.02em; }
+    .label-line .pn-highlight { font-weight: 600; color: #1a1a1a; }
+    .label-line .speed-highlight { font-weight: 600; color: #c41230; }
+    .label-note { font-size: 0.6rem; color: #666; margin-top: 0.3rem; letter-spacing: 0.05em; }
+    .label-barcode {
+      display: flex;
+      gap: 1px;
+      height: 20px;
+      margin: 0.5rem 0 0.3rem;
+      align-items: stretch;
+    }
+    .label-barcode .bar {
+      background: #1a1a1a;
+      flex-shrink: 0;
+    }
+
+    .label-annotation {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.5rem;
+    }
+    .ann-item {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      padding: 0.6rem 0.8rem;
+    }
+    .ann-field {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--amber);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 0.25rem;
+    }
+    .ann-value { font-size: 0.82rem; color: var(--white); font-weight: 500; }
+    .ann-note  { font-size: 0.72rem; color: var(--muted); margin-top: 0.15rem; line-height: 1.3; }
+
+    /* ECC DIAGRAM */
+    .ecc-diagram {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      margin: 2rem 0;
+    }
+    .ecc-die {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .ecc-die-block {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      padding: 1rem 1.2rem;
+      flex: 1;
+      min-width: 160px;
+    }
+    .ecc-die-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+    }
+    .ecc-die-row {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .ecc-cell {
+      height: 18px;
+      flex: 1;
+      border-radius: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ecc-cell.data { background: #0d2030; border: 1px solid #1a3a50; }
+    .ecc-cell.ecc-bit { background: #1a1000; border: 1px solid #3a2800; }
+    .ecc-cell-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.38rem; color: #4a7090; }
+    .ecc-cell.ecc-bit .ecc-cell-label { color: #806030; }
+    .ecc-arrow-block { text-align: center; flex-shrink: 0; }
+    .ecc-arrow-sym { font-size: 1.5rem; color: var(--green); }
+    .ecc-arrow-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; color: var(--green); letter-spacing: 0.1em; display: block; margin-top: 0.2rem; }
+
+    .ecc-types-grid {
+      display: grid;
+      grid-template-columns: repeat(3,1fr);
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    @media (max-width: 620px) { .ecc-types-grid { grid-template-columns: 1fr; } }
+    .ecc-type-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      padding: 1rem;
+    }
+    .ecc-type-card.active { border-color: var(--green); }
+    .ecc-type-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.4rem;
+    }
+    .ecc-type-card.active .ecc-type-title { color: var(--green); }
+    .ecc-type-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.55rem;
+      padding: 0.1rem 0.4rem;
+      margin-bottom: 0.5rem;
+      display: inline-block;
+      letter-spacing: 0.1em;
+    }
+    .ecc-type-card.active .ecc-type-badge { background: rgba(57,211,83,0.1); color: var(--green); border: 1px solid rgba(57,211,83,0.3); }
+    .ecc-type-card:not(.active) .ecc-type-badge { background: rgba(99,106,128,0.1); color: var(--muted); border: 1px solid rgba(99,106,128,0.3); }
+    .ecc-type-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
+
+    /* BIOS BLOCK */
+    .bios-block {
+      margin: 2rem 0;
+      background: #000080;
+      border: 2px solid #3a3a9a;
+      padding: 1.8rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.7;
+      color: #c8c8ff;
+      position: relative;
+      overflow: hidden;
+    }
+    .bios-block .scanlines { position: absolute; inset: 0; pointer-events: none; }
+    .bios-block p { color: #c8c8ff; margin-bottom: 0.8rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; }
+    .bios-highlight { color: #ffff00; }
+    .bios-options { margin-top: 1rem; padding-left: 1.5rem; }
+    .bios-options li { list-style: none; padding: 0.15rem 0; color: #c8c8ff; }
+    .bios-caption { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--muted); letter-spacing: 0.1em; text-align: center; margin-top: 0.8rem; }
+
+    /* BYPASS CARDS */
+    .bypass-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin: 1.5rem 0; }
+    @media (max-width: 620px) { .bypass-grid { grid-template-columns: 1fr; } }
+    .bypass-card { background: var(--bg2); border: 1px solid var(--border); padding: 1.2rem; }
+    .bypass-card.recommended { border-color: var(--green); }
+    .bypass-card.advanced    { border-color: var(--amber); }
+    .bypass-card.decline     { border-color: var(--red); }
+    .bypass-key { font-family: 'IBM Plex Mono', monospace; font-size: 1.6rem; font-weight: 600; margin-bottom: 0.6rem; }
+    .bypass-card.recommended .bypass-key { color: var(--green); }
+    .bypass-card.advanced    .bypass-key { color: var(--amber); }
+    .bypass-card.decline     .bypass-key { color: var(--red); }
+    .bypass-card-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--white); margin-bottom: 0.5rem; }
+    .bypass-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+
+    /* BUYING GUIDE */
+    .guide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1.5rem 0; }
+    @media (max-width: 560px) { .guide-grid { grid-template-columns: 1fr; } }
+    .guide-card { background: var(--bg2); border: 1px solid var(--border); padding: 1.4rem; }
+    .guide-card-head { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border); }
+    .guide-card.standard .guide-card-head { color: var(--cyan); }
+    .guide-card.clocked  .guide-card-head { color: var(--amber); }
+    .guide-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+    .guide-list li { font-size: 0.85rem; line-height: 1.4; padding-left: 1.2rem; position: relative; }
+    .guide-list li::before { content: '→'; position: absolute; left: 0; font-family: 'IBM Plex Mono', monospace; }
+    .guide-card.standard .guide-list li::before { color: var(--cyan); }
+    .guide-card.clocked  .guide-list li::before { color: var(--amber); }
+
+    /* GLOSSARY */
+    .glossary { background: var(--bg2); border: 1px solid var(--border); padding: 1.8rem; margin: 2rem 0; }
+    .glossary-title { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--amber); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 1.2rem; }
+    .glossary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+    .glossary-term { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--white); letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+    .glossary-def { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 1.5rem 2rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--muted); letter-spacing: 0.1em; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; max-width: 920px; margin: 0 auto; }
+
+    /* UTILS */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 3rem 0 0; }
+
+    /* RANK EXPLAINER */
+    .rank-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem 0; }
+    @media (max-width: 620px) { .rank-grid { grid-template-columns: 1fr; } }
+    .rank-card { background: var(--bg2); border: 1px solid var(--border); padding: 1.2rem; }
+    .rank-card.oem      { border-top: 2px solid var(--muted); }
+    .rank-card.standard { border-top: 2px solid var(--cyan); }
+    .rank-card.csodimm  { border-top: 2px solid var(--amber); }
+    .rank-card-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.8rem; }
+    .rank-card.oem      .rank-card-title { color: var(--muted); }
+    .rank-card.standard .rank-card-title { color: var(--cyan); }
+    .rank-card.csodimm  .rank-card-title { color: var(--amber); }
+
+    /* PN GRID */
+    .pn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem 0; }
+    @media (max-width: 660px) { .pn-grid { grid-template-columns: 1fr; } }
+    .pn-card { background: var(--bg2); border: 1px solid var(--border); padding: 1.2rem; }
+    .pn-card.oem      { border-top: 2px solid var(--muted); }
+    .pn-card.standard { border-top: 2px solid var(--cyan); }
+    .pn-card.clocked  { border-top: 2px solid var(--amber); }
+    .pn-header { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.8rem; }
+    .pn-card.oem      .pn-header { color: var(--muted); }
+    .pn-card.standard .pn-header { color: var(--cyan); }
+    .pn-card.clocked  .pn-header { color: var(--amber); }
+    .pn-number { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--muted); word-break: break-all; margin-bottom: 0.8rem; line-height: 1.5; }
+    .pn-number span { color: var(--white); font-weight: 600; }
+    .pn-specs { display: flex; flex-direction: column; gap: 0.35rem; }
+    .pn-spec { display: flex; justify-content: space-between; font-size: 0.8rem; gap: 0.5rem; }
+    .pn-spec-key { color: var(--muted); font-size: 0.75rem; }
+    .pn-spec-val { color: var(--text); }
+    .pn-spec-val.hi-amber { color: var(--amber); font-weight: 500; }
+    .pn-spec-val.hi-cyan  { color: var(--cyan); font-weight: 500; }
+    .pn-spec-val.hi-red   { color: var(--red); font-weight: 500; }
+
+    /* ARCH DIAGRAM */
+    .arch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0; }
+    @media (max-width: 600px) { .arch-grid { grid-template-columns: 1fr; } }
+    .arch-card { background: var(--bg2); border: 1px solid var(--border); padding: 1.4rem; }
+    .arch-card.ddr4  { border-top: 2px solid var(--muted); }
+    .arch-card.ddr5  { border-top: 2px solid var(--amber); }
+    .arch-card-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border); }
+    .arch-card.ddr4 .arch-card-title { color: var(--muted); }
+    .arch-card.ddr5 .arch-card-title { color: var(--amber); }
+    .arch-chip-row { display: flex; gap: 6px; margin-bottom: 0.8rem; align-items: center; flex-wrap: wrap; }
+    .arch-chip-box {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      padding: 0.3rem 0.5rem;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+    .arch-chip-box.on-mobo  { border-color: #2a4a6a; color: var(--muted); }
+    .arch-chip-box.on-mod   { border-color: var(--amber-dim); color: var(--amber); background: #130e00; }
+    .arch-chip-box.on-mod.green { border-color: #1a5a30; color: var(--green); background: #0a1a10; }
+    .arch-chip-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; color: var(--muted); letter-spacing: 0.1em; }
+    .arch-arrow { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--border); }
+
+    /* SUBCHANNEL DIAGRAM */
+    .subchan-wrap { background: var(--bg2); border: 1px solid var(--border); padding: 1.8rem; margin: 1.5rem 0; }
+    .subchan-bus { display: flex; gap: 0; margin: 1rem 0; }
+    .subchan-half {
+      flex: 1;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      padding: 0.8rem;
+      text-align: center;
+    }
+    .subchan-half.a { border-right: 0; border-color: var(--cyan); }
+    .subchan-half.b { border-color: #1a5a30; }
+    .subchan-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; }
+    .subchan-half.a .subchan-label { color: var(--cyan); }
+    .subchan-half.b .subchan-label { color: var(--green); }
+    .subchan-detail { font-size: 0.75rem; color: var(--muted); margin-top: 0.3rem; }
+
+    /* MATH FORMULA */
+    .math-block {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--cyan);
+      padding: 1rem 1.4rem;
+      margin: 1.2rem 0;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .math-formula { font-size: clamp(0.75rem, 2vw, 0.9rem); color: var(--white); letter-spacing: 0.04em; margin-bottom: 0.4rem; }
+    .math-formula .var  { color: var(--cyan); }
+    .math-formula .op   { color: var(--muted); }
+    .math-formula .num  { color: var(--amber); }
+    .math-formula .eq   { color: var(--green); }
+    .math-example { font-size: 0.75rem; color: var(--muted); }
+    .math-example span { color: var(--green); }
+
+    /* SPEED GRADE TABLE — styled differently from main tables */
+    .grade-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin: 1.5rem 0; border: 1px solid var(--border); overflow: hidden; }
+    @media (max-width: 600px) { .grade-grid { grid-template-columns: repeat(2, 1fr); } }
+    .grade-cell { padding: 0.9rem 0.8rem; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
+    .grade-cell:nth-child(4n) { border-right: 0; }
+    .grade-cell.header { background: var(--bg2); font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
+    .grade-cell.grade-a { background: rgba(240,95,95,0.04); }
+    .grade-cell.grade-b { background: rgba(245,166,35,0.04); }
+    .grade-cell.grade-c { background: rgba(99,106,128,0.04); }
+    .grade-cell.grade-n { background: rgba(61,214,245,0.04); }
+    .grade-name { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; font-weight: 600; }
+    .grade-cell.grade-a .grade-name { color: var(--red); }
+    .grade-cell.grade-b .grade-name { color: var(--amber); }
+    .grade-cell.grade-c .grade-name { color: var(--muted); }
+    .grade-cell.grade-n .grade-name { color: var(--cyan); }
+    .grade-desc { font-size: 0.72rem; color: var(--muted); line-height: 1.4; margin-top: 0.2rem; }
+
+    /* BANDWIDTH TABLE */
+    .bw-table-wrap { margin: 1.5rem 0; overflow-x: auto; }
+    .bw-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .bw-table thead tr { background: var(--bg2); border-bottom: 1px solid var(--border); }
+    .bw-table thead th { padding: 0.7rem 0.9rem; text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+    .bw-table tbody tr { border-bottom: 1px solid var(--border); }
+    .bw-table tbody tr:hover { background: var(--bg2); }
+    .bw-table tbody td { padding: 0.65rem 0.9rem; }
+    .bw-table tbody td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; }
+    .bw-bar { height: 6px; background: var(--bg3); border-radius: 1px; margin-top: 4px; overflow: hidden; }
+    .bw-bar-fill { height: 100%; border-radius: 1px; background: var(--amber); }
+
+    /* RANK INTERLEAVE DIAGRAM */
+    .interleave-wrap { background: var(--bg2); border: 1px solid var(--border); padding: 1.5rem; margin: 1.5rem 0; }
+    .interleave-track { display: flex; gap: 3px; margin: 0.4rem 0; align-items: center; }
+    .interleave-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--muted); width: 60px; flex-shrink: 0; }
+    .int-block { height: 22px; border-radius: 1px; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 0.5rem; letter-spacing: 0.05em; flex: 1; }
+    .int-block.active-r0 { background: rgba(61,214,245,0.2); border: 1px solid var(--cyan); color: var(--cyan); }
+    .int-block.active-r1 { background: rgba(57,211,83,0.2); border: 1px solid var(--green); color: var(--green); }
+    .int-block.wait      { background: var(--bg3); border: 1px solid var(--border); color: var(--border); }
+    .int-block.hidden    { background: transparent; border: 1px solid transparent; }
+
+    /* PLATFORM COMPAT */
+    .platform-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin: 1.5rem 0; }
+    @media (max-width: 640px) { .platform-grid { grid-template-columns: 1fr; } }
+    .platform-card { background: var(--bg2); border: 1px solid var(--border); padding: 1.2rem; }
+    .platform-card.supported    { border-top: 2px solid var(--green); }
+    .platform-card.partial      { border-top: 2px solid var(--amber); }
+    .platform-card.unsupported  { border-top: 2px solid var(--red); }
+    .platform-card-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+    .platform-card.supported   .platform-card-title { color: var(--green); }
+    .platform-card.partial     .platform-card-title { color: var(--amber); }
+    .platform-card.unsupported .platform-card-title { color: var(--red); }
+    .platform-card-sub { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--muted); letter-spacing: 0.1em; margin-bottom: 0.7rem; }
+    .platform-card p { font-size: 0.8rem; color: var(--muted); line-height: 1.45; }
+
+    /* COMPONENT ECOSYSTEM TABLE */
+    .ecosystem-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 1.5rem 0; }
+    .ecosystem-table thead tr { background: var(--bg2); border-bottom: 1px solid var(--border); }
+    .ecosystem-table thead th { padding: 0.75rem 1rem; text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+    .ecosystem-table tbody tr { border-bottom: 1px solid var(--border); }
+    .ecosystem-table tbody tr:hover { background: var(--bg2); }
+    .ecosystem-table tbody td { padding: 0.7rem 1rem; vertical-align: top; }
+    .ecosystem-table tbody td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--amber); }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="header-tag">Memory Guide</span>
+  <span class="header-title">DDR5 · SODIMM · CUDIMM · CSODIMM · ON-DIE ECC · CKD · BYPASS MODE</span>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Consumer RAM Reference — Based on Real Hardware</div>
+  <h1>Not All DDR5<br>Is Created <em>Equal</em></h1>
+  <p class="hero-sub">
+    A complete breakdown of DDR5 SODIMM variants, the new CSODIMM / CUDIMM standard, on-die ECC, part number decoding, and how to know what you're buying or selling.
+  </p>
+  <div class="hero-chips">
+    <span class="chip amber">DDR5</span>
+    <span class="chip">JEDEC Standard</span>
+    <span class="chip cyan">CKD Chip</span>
+    <span class="chip green">On-Die ECC</span>
+    <span class="chip">Ryzen AI · Intel Core Ultra</span>
+    <span class="chip">Bypass Mode</span>
+  </div>
+</div>
+
+<main>
+
+  <!-- §1 — Three Modules in the Wild -->
+  <section>
+    <div class="section-label">Section 01 — Three Modules, Three Generations</div>
+    <h2>The Spectrum of<br>DDR5 <em style="color:var(--amber)">SODIMM</em></h2>
+    <p>
+      Walking through the DDR5 SODIMM market right now, you'll encounter three meaningfully different generations of module — all physically interchangeable, all labeled "DDR5," but with very different performance floors, ceilings, and platform requirements. Which one comes inside a machine off the shelf is entirely a function of what retail configuration was purchased — the same chassis from the same OEM can ship with any of these depending on the SKU.
+    </p>
+
+    <div class="pn-grid">
+      <div class="pn-card oem">
+        <div class="pn-header">① OEM Stock / Entry</div>
+        <div class="pn-number">
+          Mfr: <span>SK Hynix</span><br>
+          PN: <span>HMCG66MEBSA092N AA</span><br>
+          JEDEC: <span>PC5-4800B-SC0-1010-XT</span>
+        </div>
+        <div class="pn-specs">
+          <div class="pn-spec"><span class="pn-spec-key">Speed</span><span class="pn-spec-val">4800 MT/s</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">Capacity</span><span class="pn-spec-val">8 GB</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">Rank × Width</span><span class="pn-spec-val hi-red">1Rx16 — narrow</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">CKD Chip</span><span class="pn-spec-val">No</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">Profile</span><span class="pn-spec-val">SC0 (SODIMM, no CKD)</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">On-Die ECC</span><span class="pn-spec-val hi-cyan">Yes (JEDEC mandatory)</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">Usage</span><span class="pn-spec-val">Common budget/entry retail config</span></div>
+        </div>
+      </div>
+
+      <div class="pn-card standard">
+        <div class="pn-header">② Standard SODIMM / Upgrade</div>
+        <div class="pn-number">
+          Mfr: <span>Kingston (Micron dies)</span><br>
+          HP P/N: <span>N77399-001</span><br>
+          JEDEC: <span>PC5-5600B-SA0-1110-XT</span>
+        </div>
+        <div class="pn-specs">
+          <div class="pn-spec"><span class="pn-spec-key">Speed</span><span class="pn-spec-val hi-cyan">5600 MT/s</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">Capacity</span><span class="pn-spec-val">16 GB</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">Rank × Width</span><span class="pn-spec-val hi-cyan">1Rx8 — full width</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">CKD Chip</span><span class="pn-spec-val">No</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">Profile</span><span class="pn-spec-val">SA0 (SODIMM, no CKD)</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">On-Die ECC</span><span class="pn-spec-val hi-cyan">Yes (JEDEC mandatory)</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">Usage</span><span class="pn-spec-val">Standard DDR5 upgrade / replacement</span></div>
+        </div>
+      </div>
+
+      <div class="pn-card clocked">
+        <div class="pn-header">③ CSODIMM (Clocked)</div>
+        <div class="pn-number">
+          Mfr: <span>Micron</span><br>
+          PN: <span>MTC8C1084S1VC64BD1 BCG</span><br>
+          JEDEC: <span>PC5-6400B-VA0-1211-XT</span>
+        </div>
+        <div class="pn-specs">
+          <div class="pn-spec"><span class="pn-spec-key">Speed</span><span class="pn-spec-val hi-amber">6400 MT/s</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">Capacity</span><span class="pn-spec-val">16 GB</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">Rank × Width</span><span class="pn-spec-val hi-amber">1Rx8 — full width</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">CKD Chip</span><span class="pn-spec-val hi-amber">Yes — on-module</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">Profile</span><span class="pn-spec-val hi-amber">VA0 (CSODIMM, CKD)</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">On-Die ECC</span><span class="pn-spec-val hi-cyan">Yes (JEDEC mandatory)</span></div>
+          <div class="pn-spec"><span class="pn-spec-key">Usage</span><span class="pn-spec-val">Next-gen platforms</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout red">
+      <div class="callout-title">The Hidden Upgrade Variable: 1Rx16 vs 1Rx8</div>
+      Entry and budget retail configurations across many OEMs commonly ship with <strong>8GB 1Rx16 at 4800 MT/s</strong> — it's a cost-optimized choice that meets the spec on paper but leaves performance on the table. The configuration you get is a function of the retail SKU you purchased, not a consistent OEM policy. Both dimensions of that spec matter. Moving to a 1Rx8 upgrade — whether at 5600 or 6400 — provides a <strong>double gain</strong>: higher clock speed <em>and</em> a wider internal data bus. A 1Rx16 module uses 4 DRAM chips each 16 bits wide. A 1Rx8 uses 8 chips each 8 bits wide. Both achieve a 64-bit total bus, but 1Rx8 has twice the internal parallelism and meaningfully lower effective latency per access — critical for APU integrated graphics and AI inference workloads.
+    </div>
+  </section>
+
+  <!-- §2 — On-Die ECC -->
+  <section>
+    <div class="section-label">Section 02 — On-Die ECC</div>
+    <h2>The Feature Nobody<br>Talks About: <em style="color:var(--green)">On-Die ECC</em></h2>
+    <p>
+      Every DDR5 module sold today — from the cheapest 4800 MT/s stick to the highest-end CSODIMM — contains <strong>on-die ECC</strong> mandated by the JEDEC DDR5 specification. This is one of DDR5's biggest reliability improvements over DDR4, and it happens entirely transparently inside each DRAM die.
+    </p>
+
+    <div class="ecc-diagram">
+      <div class="flow-title">// ON-DIE ECC — HOW IT WORKS INSIDE EACH DRAM DIE</div>
+      <div class="ecc-die">
+        <div class="ecc-die-block">
+          <div class="ecc-die-title">// DRAM DIE INTERNAL STORAGE (per 64-bit burst)</div>
+          <div class="ecc-die-row">
+            <div class="ecc-cell data"><span class="ecc-cell-label">D0</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D1</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D2</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D3</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D4</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D5</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D6</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D7</span></div>
+            <div class="ecc-cell ecc-bit"><span class="ecc-cell-label">ECC</span></div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);margin-top:0.4rem;">8 data bits + 1 parity/ECC bit per 8-bit group — internal to the die</div>
+        </div>
+        <div class="ecc-arrow-block">
+          <div class="ecc-arrow-sym">→</div>
+          <span class="ecc-arrow-label">CORRECTED<br>DATA OUT</span>
+        </div>
+        <div class="ecc-die-block">
+          <div class="ecc-die-title">// DATA DELIVERED TO CPU</div>
+          <div class="ecc-die-row">
+            <div class="ecc-cell data"><span class="ecc-cell-label">D0</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D1</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D2</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D3</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D4</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D5</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D6</span></div>
+            <div class="ecc-cell data"><span class="ecc-cell-label">D7</span></div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--green);margin-top:0.4rem;">Bit flip corrected silently — CPU never sees the error</div>
+        </div>
+      </div>
+
+      <div class="ecc-types-grid">
+        <div class="ecc-type-card active">
+          <div class="ecc-type-title">On-Die ECC</div>
+          <div class="ecc-type-badge">ALL DDR5 — MANDATORY</div>
+          <div class="ecc-type-desc">Built into every DDR5 DRAM die. Corrects single-bit errors <em>within</em> the DRAM array before data reaches the CPU. Completely transparent to the OS and memory controller. Present on all three modules in this guide.</div>
+        </div>
+        <div class="ecc-type-card">
+          <div class="ecc-type-title">ECC SODIMM</div>
+          <div class="ecc-type-badge">WORKSTATION / SERVER OPTIONAL</div>
+          <div class="ecc-type-desc">An <em>additional</em> ECC chip on the PCB that provides error correction across the full 64/72-bit memory bus between the RAM and CPU. Requires a platform that supports ECC (EPYC, Xeon, certain Ryzen PRO configs). More expensive.</div>
+        </div>
+        <div class="ecc-type-card">
+          <div class="ecc-type-title">Non-ECC DDR4</div>
+          <div class="ecc-type-badge">PREVIOUS GENERATION</div>
+          <div class="ecc-type-desc">Standard consumer DDR4 had no on-die ECC. Bit flips caused by charge leakage or noise were silent and uncorrectable. One of DDR5's most significant engineering advances is making on-die ECC mandatory for all dies.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout green">
+      <div class="callout-title">What This Means for Buyers</div>
+      Every DDR5 SODIMM you purchase — cheap or expensive, 4800 or 6400, standard or CSODIMM — includes on-die ECC. It's not a premium feature. However, it only corrects errors <strong>inside each DRAM die</strong>. It does not replace full ECC SODIMM (which corrects errors on the bus between RAM and CPU). For most consumer and prosumer workloads, on-die ECC is more than sufficient and represents a genuine DDR5 reliability advantage over DDR4.
+    </div>
+
+    <p>
+      From a eBay reselling or buying perspective: on-die ECC is <em>not</em> listed as a feature on most consumer labels. If you see "ECC SODIMM" explicitly called out, that is the full system ECC variant — a different, more expensive category primarily used in workstation and server builds.
+    </p>
+  </section>
+
+  <!-- §3 — DDR5 Architecture -->
+  <section>
+    <div class="section-label">Section 03 — DDR5 Architecture</div>
+    <h2>What Actually Changed:<br>DDR4 <em style="color:var(--amber)">→</em> DDR5</h2>
+    <p>
+      The jump from DDR4 to DDR5 is not merely a speed bump. It represents a fundamental <strong>decentralization of system responsibilities</strong> — power management, signal conditioning, and error correction have all migrated from the motherboard and CPU onto the memory module itself. Understanding this shift is key to understanding why CSODIMM exists and why it requires platform support rather than being purely plug-and-play.
+    </p>
+
+    <div class="arch-grid">
+      <div class="arch-card ddr4">
+        <div class="arch-card-title">DDR4 Architecture</div>
+        <div class="arch-chip-row">
+          <div class="arch-chip-box on-mobo">Motherboard VRM</div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-chip-box on-mobo">1.2V to DRAM</div>
+        </div>
+        <div class="arch-chip-row">
+          <div class="arch-chip-box on-mobo">CPU Clock Out</div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-chip-box on-mobo">DRAM Direct</div>
+        </div>
+        <div class="arch-chip-row">
+          <div class="arch-chip-box on-mobo">64-bit Single Channel</div>
+        </div>
+        <div class="arch-chip-row">
+          <div class="arch-chip-box on-mobo">No ODECC</div>
+        </div>
+        <div class="arch-chip-row">
+          <div class="arch-chip-box on-mobo">4 Bank Groups</div>
+        </div>
+        <div class="arch-chip-row">
+          <div class="arch-chip-box on-mobo">Burst Length 8</div>
+        </div>
+      </div>
+      <div class="arch-card ddr5">
+        <div class="arch-card-title">DDR5 Architecture</div>
+        <div class="arch-chip-row">
+          <div class="arch-chip-box on-mod">On-Module PMIC</div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-chip-box on-mod">1.1V regulated</div>
+        </div>
+        <div class="arch-chip-row">
+          <div class="arch-chip-box on-mod">CKD (CSODIMM)</div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-chip-box on-mod">Clean clock regen</div>
+        </div>
+        <div class="arch-chip-row">
+          <div class="arch-chip-box on-mod">2× 32-bit Subchannels</div>
+        </div>
+        <div class="arch-chip-row">
+          <div class="arch-chip-box on-mod green">On-Die ECC (ODECC)</div>
+        </div>
+        <div class="arch-chip-row">
+          <div class="arch-chip-box on-mod">8 Bank Groups</div>
+        </div>
+        <div class="arch-chip-row">
+          <div class="arch-chip-box on-mod">Burst Length 16</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>The On-Module PMIC</h3>
+    <p>
+      In DDR4 and earlier, the motherboard's Voltage Regulator Module (VRM) delivered a fixed 1.2V supply directly to the DRAM chips. DDR5 moves this responsibility onto the module itself via a <strong>Power Management IC (PMIC)</strong>. The PMIC receives a bulk input voltage — typically 5V for consumer UDIMMs, 12V for server RDIMMs — and regulates it down to the 1.1V V<sub>DD</sub> and V<sub>DDQ</sub> rails the DRAM chips require.
+    </p>
+    <p>
+      This matters for two reasons. First, it allows more granular per-module power control and simplifies motherboard PCB routing — fewer high-current power planes to route across the board means less noise coupling into the signal traces. Second, the PMIC generates heat of its own. On compact form factors like SODIMM and CSODIMM, this contributes to the higher thermal density of DDR5 modules compared to DDR4 — a meaningful consideration in small chassis where airflow is limited.
+    </p>
+
+    <h3>Dual 32-Bit Subchannels</h3>
+    <p>
+      DDR4 used a single 64-bit channel per module. DDR5 splits the module into <strong>two independent 32-bit subchannels</strong>, each with its own command and address bus. Both subchannels share the same physical connector but are logically independent — the memory controller can issue commands to Subchannel A while Subchannel B is still processing a previous request.
+    </p>
+
+    <div class="subchan-wrap">
+      <div class="flow-title">// DDR5 DUAL SUBCHANNEL ARCHITECTURE — ONE MODULE, TWO INDEPENDENT BUSES</div>
+      <div class="subchan-bus">
+        <div class="subchan-half a">
+          <div class="subchan-label">Subchannel A</div>
+          <div class="subchan-detail">32-bit data bus · own CMD/ADDR · independent scheduling</div>
+        </div>
+        <div class="subchan-half b">
+          <div class="subchan-label">Subchannel B</div>
+          <div class="subchan-detail">32-bit data bus · own CMD/ADDR · independent scheduling</div>
+        </div>
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:var(--muted);text-align:center;margin-top:0.8rem;">Total: 64-bit effective width — same as DDR4, but with double the command concurrency and reduced "bus wait" during multi-threaded workloads</div>
+    </div>
+
+    <p>
+      This concurrency improvement is one of DDR5's least-discussed advantages. While the total data width is the same as DDR4 at 64 bits, the ability to independently schedule two streams means that complex, multi-threaded workloads — including AI inference and large texture streaming in APU-based systems — see lower effective access latency under pressure.
+    </p>
+
+    <h3>The SPD Hub</h3>
+    <p>
+      Every DDR5 module also incorporates an <strong>SPD Hub</strong>, a new component that integrates the Serial Presence Detect (SPD) EEPROM — previously a standalone chip — with thermal sensors and an I3C Basic sideband bus interface. When your system boots, the memory controller communicates with the SPD Hub over this sideband bus to read the module's timing parameters, voltage requirements, thermal status, and in the case of CSODIMM, the CKD's device ID and initialization requirements.
+    </p>
+    <p>
+      This is why CSODIMM requires BIOS support: the BIOS must know how to query the SPD Hub, parse the CKD's device ID, and issue the correct initialization sequence to the clock driver before training the memory interface. Systems without this firmware logic will either refuse to boot or fall back to bypass mode.
+    </p>
+
+    <div class="callout">
+      <div class="callout-title">DDR4 vs DDR5 — Architecture Summary</div>
+      <div class="table-wrap" style="margin:0">
+        <table>
+          <thead>
+            <tr>
+              <th>Specification</th>
+              <th style="color:#3a6a8a">DDR4 (PC4)</th>
+              <th style="color:var(--amber)">DDR5 (PC5)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Nominal Voltage (V<sub>DD</sub>)</td><td>1.2V</td><td>1.1V (~8% reduction)</td></tr>
+            <tr><td>Power Management</td><td>Motherboard VRM</td><td>On-module PMIC</td></tr>
+            <tr><td>Internal Channels</td><td>1 × 64-bit</td><td>2 × 32-bit subchannels</td></tr>
+            <tr><td>Bank Groups</td><td>4</td><td>8</td></tr>
+            <tr><td>Burst Length</td><td>8</td><td>16 (cache-line aligned)</td></tr>
+            <tr><td>On-Die ECC</td><td>No</td><td>Yes — JEDEC mandatory</td></tr>
+            <tr><td>SPD Interface</td><td>I2C EEPROM</td><td>I3C SPD Hub with thermal sensor</td></tr>
+            <tr><td>Clock Driver</td><td>CPU only</td><td>CPU or on-module CKD (CSODIMM/CUDIMM)</td></tr>
+            <tr><td>Physical Compatibility</td><td>288-pin UDIMM / 260-pin SODIMM</td><td>288-pin UDIMM / 262-pin SODIMM</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- §4 — The Clock Problem -->
+  <section>
+    <div class="section-label">Section 04 — The Clock Signal Problem</div>
+    <h2>Why Standard DDR5<br>Struggles Above 6400 MT/s</h2>
+    <p>
+      In any DDR5 system, the CPU sends a <strong>clock signal</strong> — the heartbeat that tells memory chips exactly when to send and receive data. This works well at low to moderate speeds. As DDR5 has pushed past <strong>6400 MT/s</strong>, that clock signal starts to degrade over the distance between processor and RAM slots.
+    </p>
+
+    <div class="flow-diagram">
+      <div class="flow-title">// CLOCK SIGNAL PATH — STANDARD DDR5 vs CSODIMM</div>
+      <div class="flow-row">
+        <div class="flow-row-label">STANDARD DDR5</div>
+        <div class="flow-node cpu">CPU</div>
+        <div class="flow-arrow noisy">
+          <div class="line"></div>
+          <div class="arrowhead"></div>
+          <div class="flow-sub">NOISY @ 6400+</div>
+        </div>
+        <div class="flow-node ram">DRAM CHIPS</div>
+      </div>
+      <div class="flow-row">
+        <div class="flow-row-label">CSODIMM</div>
+        <div class="flow-node cpu">CPU</div>
+        <div class="flow-arrow clean">
+          <div class="line"></div>
+          <div class="arrowhead"></div>
+          <div class="flow-sub">ANY SIGNAL</div>
+        </div>
+        <div class="flow-node ckd">CKD CHIP</div>
+        <div class="flow-arrow ok">
+          <div class="line"></div>
+          <div class="arrowhead"></div>
+          <div class="flow-sub">CLEAN REGEN</div>
+        </div>
+        <div class="flow-node ram good">DRAM CHIPS</div>
+      </div>
+    </div>
+
+    <div class="callout cyan">
+      <div class="callout-title">Key Definition — Client Clock Driver (CKD)</div>
+      A <strong>Client Clock Driver (CKD)</strong> is a small IC added to Clocked Unbuffered DIMMs. It receives whatever clock signal the CPU sends — even if degraded — and re-drives a clean, sharp version directly to the DRAM chips on the same stick. The CPU no longer needs to maintain perfect signal integrity across the board. The "C" in CUDIMM and CSODIMM stands for <strong>Clocked</strong>.
+    </div>
+
+    <div class="diagram-wrap">
+      <div class="diagram-title">// MODULE ANATOMY — STANDARD SODIMM vs CSODIMM</div>
+      <div class="diagram-grid">
+        <div class="dimm-card standard">
+          <div class="dimm-card-label">Standard DDR5-SODIMM</div>
+          <div class="pcb">
+            <div class="chip-block"><span class="chip-label">DRAM</span></div>
+            <div class="chip-block"><span class="chip-label">DRAM</span></div>
+            <div class="chip-block"><span class="chip-label">DRAM</span></div>
+            <div class="chip-block"><span class="chip-label">DRAM</span></div>
+            <div class="pcb-notch"></div>
+            <div class="contacts"><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div></div>
+          </div>
+          <div class="dimm-specs">
+            <div class="spec-row"><span class="spec-key">Clock Source</span><span class="spec-val normal">CPU directly</span></div>
+            <div class="spec-row"><span class="spec-key">CKD Chip</span><span class="spec-val normal">None</span></div>
+            <div class="spec-row"><span class="spec-key">On-Die ECC</span><span class="spec-val good">Yes — all DDR5</span></div>
+            <div class="spec-row"><span class="spec-key">Typical Max</span><span class="spec-val normal">5600 MT/s stable</span></div>
+            <div class="spec-row"><span class="spec-key">Compatibility</span><span class="spec-val good">Universal</span></div>
+          </div>
+        </div>
+        <div class="dimm-card clocked">
+          <div class="dimm-card-label">CSODIMM (Clocked)</div>
+          <div class="pcb">
+            <div class="chip-block"><span class="chip-label">DRAM</span></div>
+            <div class="chip-block"><span class="chip-label">DRAM</span></div>
+            <div class="ckd-chip"><span class="ckd-label">CKD</span></div>
+            <div class="chip-block"><span class="chip-label">DRAM</span></div>
+            <div class="chip-block"><span class="chip-label">DRAM</span></div>
+            <div class="pcb-notch"></div>
+            <div class="contacts"><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div><div class="contact"></div></div>
+          </div>
+          <div class="dimm-specs">
+            <div class="spec-row"><span class="spec-key">Clock Source</span><span class="spec-val warn">On-module CKD chip</span></div>
+            <div class="spec-row"><span class="spec-key">CKD Chip</span><span class="spec-val warn">Present ✓</span></div>
+            <div class="spec-row"><span class="spec-key">On-Die ECC</span><span class="spec-val good">Yes — all DDR5</span></div>
+            <div class="spec-row"><span class="spec-key">Typical Max</span><span class="spec-val warn">6400+ MT/s stable</span></div>
+            <div class="spec-row"><span class="spec-key">Compatibility</span><span class="spec-val warn">Requires BIOS support</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- §4 — Label Reconstructions -->
+  <section>
+    <div class="section-label">Section 05 — Reading the Label</div>
+    <h2>Faithful Label<br>Reconstructions</h2>
+    <p>
+      These are exact reproductions of the three labels photographed for this guide. When buying or selling on eBay, these fields are your authentication. A part number mismatch between the label and the listing is a red flag. Learn to read them fluently.
+    </p>
+
+    <div class="labels-wrap">
+
+      <!-- Label 1: SK Hynix OEM -->
+      <div class="label-card">
+        <div class="label-card-title">Label ① — <span>SK Hynix Entry-Tier SODIMM (Example: Lower-Cost Retail Config)</span></div>
+        <div class="label-reconstruction">
+          <div class="label-mfr hynix">SK hynix</div>
+          <div class="label-barcode">
+            <div class="bar" style="width:1px"></div><div class="bar" style="width:2px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:3px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:2px;background:transparent"></div><div class="bar" style="width:3px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:2px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:3px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:2px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:3px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:2px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:3px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div>
+          </div>
+          <div class="label-line">DDR5 SODIMM &nbsp; KOREA</div>
+          <div class="label-line"><span class="speed-highlight">8GB 1Rx16 PC5-4800B-SC0-1010-XT</span></div>
+          <div class="label-line">PN: <span class="pn-highlight">HMCG66MEBSA092N AA</span></div>
+          <div class="label-line">SN: 80AD01223686E2FBA4</div>
+          <div class="label-note">CE &nbsp; UKCA &nbsp; ♻</div>
+        </div>
+        <div class="label-annotation">
+          <div class="ann-item">
+            <div class="ann-field">Capacity</div>
+            <div class="ann-value">8 GB</div>
+            <div class="ann-note">Common in lower-cost retail configs across many OEMs</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">Rank × Width</div>
+            <div class="ann-value">1Rx16</div>
+            <div class="ann-note">Narrow bus — 4 chips × 16-bit = 64-bit total</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">Speed Grade</div>
+            <div class="ann-value">PC5-4800B</div>
+            <div class="ann-note">Slowest DDR5 JEDEC tier, lowest cost OEM</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">Profile Code</div>
+            <div class="ann-value">SC0</div>
+            <div class="ann-note">S = SODIMM, C = standard (no CKD), 0 = rank</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">On-Die ECC</div>
+            <div class="ann-value">Yes</div>
+            <div class="ann-note">Mandatory on all DDR5 — not printed on label</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">eBay Identifier</div>
+            <div class="ann-value">HMCG66MEBSA092N</div>
+            <div class="ann-note">Search by PN for exact replacement</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Label 2: Kingston Standard -->
+      <div class="label-card">
+        <div class="label-card-title">Label ② — <span>Kingston / HP OEM Upgrade SODIMM</span></div>
+        <div class="label-reconstruction">
+          <div class="label-mfr kingston">Kingston</div>
+          <div class="label-barcode">
+            <div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:3px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:2px;background:transparent"></div><div class="bar" style="width:3px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:2px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:3px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:3px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:2px;background:transparent"></div><div class="bar" style="width:3px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div>
+          </div>
+          <div class="label-line"><span class="speed-highlight">DDR5 SODIMM 16GB 1Rx8 PC5-5600B-SA0-1110-XT</span></div>
+          <div class="label-line">0198012522001E6BA4</div>
+          <div class="label-line">HP56S46BS8MDF-16 &nbsp; KR</div>
+          <div class="label-line"><span class="pn-highlight">9995790-E32.A00G-10881129</span></div>
+          <div class="label-note">ASSY IN TAIWAN (1) &nbsp;&nbsp; CE &nbsp; UKCA</div>
+        </div>
+        <div class="label-annotation">
+          <div class="ann-item">
+            <div class="ann-field">Capacity</div>
+            <div class="ann-value">16 GB</div>
+            <div class="ann-note">2× the stock 8GB OEM module</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">Rank × Width</div>
+            <div class="ann-value">1Rx8</div>
+            <div class="ann-note">Full bus — 8 chips × 8-bit = 64-bit, better for APU</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">Speed Grade</div>
+            <div class="ann-value">PC5-5600B</div>
+            <div class="ann-note">+800 MT/s over stock — significant for iGPU</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">Profile Code</div>
+            <div class="ann-value">SA0</div>
+            <div class="ann-note">S = SODIMM, A = standard, 0 = single rank</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">HP P/N</div>
+            <div class="ann-value">N77399-001</div>
+            <div class="ann-note">OEM spare P/N — useful for cross-referencing compatibility lists</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">eBay Identifier</div>
+            <div class="ann-value">9995790-E32 / HP56S46BS8MDF-16</div>
+            <div class="ann-note">Either PN works for search</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Label 3: Micron CSODIMM -->
+      <div class="label-card">
+        <div class="label-card-title">Label ③ — <span>Micron CSODIMM (DDR5-6400 Clocked)</span></div>
+        <div class="label-reconstruction">
+          <div class="label-mfr micron">Micron</div>
+          <div class="label-barcode">
+            <div class="bar" style="width:1px"></div><div class="bar" style="width:3px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:2px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:3px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:2px;background:transparent"></div><div class="bar" style="width:3px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:3px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:2px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:3px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:2px;background:transparent"></div><div class="bar" style="width:2px"></div><div class="bar" style="width:1px;background:transparent"></div><div class="bar" style="width:1px"></div><div class="bar" style="width:3px;background:transparent"></div><div class="bar" style="width:2px"></div>
+          </div>
+          <div class="label-line">PN: <span class="pn-highlight">MTC8C1084S1VC64BD1 BCG</span></div>
+          <div class="label-line"><span class="speed-highlight">DDR5 CSODIMM</span> &nbsp; PRODUCT OF CHINA</div>
+          <div class="label-line"><span class="speed-highlight">16GB 1RX8 PC5-6400B-VA0-1211-XT</span></div>
+          <div class="label-line">SN: 802C0F2536529892A3</div>
+          <div class="label-note">DPBASDF003 &nbsp;&nbsp; CE &nbsp; UKCA</div>
+        </div>
+        <div class="label-annotation">
+          <div class="ann-item">
+            <div class="ann-field">Module Type</div>
+            <div class="ann-value">DDR5 CSODIMM</div>
+            <div class="ann-note">Explicitly printed — key differentiator from SODIMM</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">Speed Grade</div>
+            <div class="ann-value">PC5-6400B</div>
+            <div class="ann-note">Highest mainstream DDR5 JEDEC tier currently</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">Profile Code</div>
+            <div class="ann-value">VA0</div>
+            <div class="ann-note">V = CSODIMM with CKD chip — critical identifier</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">Rank × Width</div>
+            <div class="ann-value">1Rx8</div>
+            <div class="ann-note">Full-width 8-chip config, same as Kingston upgrade</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">Micron P/N</div>
+            <div class="ann-value">MTC8C1084S1VC64BD1</div>
+            <div class="ann-note">Primary PN for eBay search — BCG = revision suffix</div>
+          </div>
+          <div class="ann-item">
+            <div class="ann-field">eBay Warning</div>
+            <div class="ann-value">Verify platform support first</div>
+            <div class="ann-note">Will trigger Bypass Mode on unsupported systems</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- §5 — Part Number Decoder -->
+  <section>
+    <div class="section-label">Section 06 — Part Number Anatomy</div>
+    <h2>Decoding the<br>JEDEC Part Number</h2>
+    <p>
+      The JEDEC part number string printed on every DDR5 module encodes everything about the module in a structured format. Once you can read it, you can evaluate any DDR5 module at a glance — before plugging it in.
+    </p>
+
+    <div class="pn-decoder">
+      <div class="pn-decoder-title">// JEDEC STRING ANATOMY — PC5-6400B-VA0-1211-XT (MICRON CSODIMM)</div>
+      <div class="pn-string">
+        <span class="seg-pc5">PC5</span><span class="dash">-</span><span class="seg-speed">6400</span><span class="seg-grade">B</span><span class="dash">-</span><span class="seg-type">V</span><span class="seg-type">A</span><span class="seg-type">0</span><span class="dash">-</span><span class="seg-ver">12</span><span class="seg-ver">11</span><span class="dash">-</span><span class="seg-xt">XT</span>
+      </div>
+      <div class="pn-legend">
+        <div class="pn-leg-item">
+          <div class="pn-leg-dot cyan"></div>
+          <div class="pn-leg-text"><strong>PC5</strong>Standard prefix. PC5 = DDR5. (PC4 = DDR4, PC3 = DDR3.)</div>
+        </div>
+        <div class="pn-leg-item">
+          <div class="pn-leg-dot amber"></div>
+          <div class="pn-leg-text"><strong>6400</strong>Data rate in MT/s. Common values: 4800, 5600, 6400. Higher = faster.</div>
+        </div>
+        <div class="pn-leg-item">
+          <div class="pn-leg-dot purple"></div>
+          <div class="pn-leg-text"><strong>B</strong>Speed grade tier. A = standard, B = binned higher. Affects which JEDEC timing profile applies.</div>
+        </div>
+        <div class="pn-leg-item">
+          <div class="pn-leg-dot green"></div>
+          <div class="pn-leg-text"><strong>V</strong>Form factor + CKD flag. <strong>S</strong> = SODIMM standard, <strong>V</strong> = CSODIMM (CKD equipped). This single letter tells you if it's a Clocked module.</div>
+        </div>
+        <div class="pn-leg-item">
+          <div class="pn-leg-dot green"></div>
+          <div class="pn-leg-text"><strong>A</strong>Clock driver type. <strong>A</strong> = standard or CKD-assisted. Cross-references JEDEC CKD spec for CSODIMM modules.</div>
+        </div>
+        <div class="pn-leg-item">
+          <div class="pn-leg-dot green"></div>
+          <div class="pn-leg-text"><strong>0</strong>Rank count. 0 = single rank (1R), 1 = dual rank (2R). Single rank has lower latency; dual rank can improve throughput in multi-channel.</div>
+        </div>
+        <div class="pn-leg-item">
+          <div class="pn-leg-dot red"></div>
+          <div class="pn-leg-text"><strong>12</strong>CAS Latency (CL) in JEDEC spec. Lower = faster. CL12 at 6400 MT/s ≈ equivalent real-time latency to CL11 at 5600 MT/s.</div>
+        </div>
+        <div class="pn-leg-item">
+          <div class="pn-leg-dot red"></div>
+          <div class="pn-leg-text"><strong>11</strong>Secondary timing tier — encodes tRCD and related parameters in a compressed notation. Used by firmware to set subtimings automatically.</div>
+        </div>
+        <div class="pn-leg-item">
+          <div class="pn-leg-dot muted"></div>
+          <div class="pn-leg-text"><strong>XT</strong>Temperature rating. XT = extended temperature range. Relevant for embedded or industrial deployments, benign for consumer use.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-title">The Single Most Important Character: V vs S</div>
+      In the profile code (third segment after the second dash), the form factor letter is your fastest compatibility check. <strong>S</strong> = standard SODIMM, no CKD — works anywhere. <strong>V</strong> = CSODIMM with on-module CKD — requires explicit BIOS/firmware support. This one character is the difference between plug-and-play and the bypass mode warning screen.
+    </div>
+
+    <h3>Bandwidth Math — What the Speed Numbers Actually Mean</h3>
+    <p>
+      The MT/s figure in the JEDEC string directly determines peak theoretical bandwidth. The relationship is simple: peak bandwidth equals the data rate multiplied by the bus width in bytes. For a standard non-ECC 64-bit module (8 bytes):
+    </p>
+
+    <div class="math-block">
+      <div class="math-formula">
+        <span class="var">B<sub>W</sub></span>
+        <span class="op"> = </span>
+        <span class="var">MT/s</span>
+        <span class="op"> × </span>
+        <span class="var">Bus Width (bytes)</span>
+      </div>
+      <div class="math-example">PC5-6400 example: <span>6400 × 8 = 51.2 GB/s theoretical peak per module</span></div>
+      <div class="math-example">PC5-5600 example: <span>5600 × 8 = 44.8 GB/s theoretical peak per module</span></div>
+      <div class="math-example">PC5-4800 example: <span>4800 × 8 = 38.4 GB/s theoretical peak per module</span></div>
+    </div>
+
+    <p>
+      Note that a 6400 MT/s module runs its physical clock at <strong>3200 MHz</strong> — half the transfer rate — due to DDR's double data rate mechanism where transfers occur on both the rising and falling edges of each clock cycle. Marketing materials sometimes conflate MT/s with MHz; they are not the same.
+    </p>
+
+    <div class="bw-table-wrap">
+      <table class="bw-table">
+        <thead>
+          <tr>
+            <th>Speed Grade</th>
+            <th>Data Rate</th>
+            <th>Effective Clock</th>
+            <th>Peak BW (64-bit)</th>
+            <th>JEDEC Designation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>PC5-38400</td>
+            <td>4800 MT/s</td>
+            <td>2400 MHz</td>
+            <td>38.4 GB/s<div class="bw-bar"><div class="bw-bar-fill" style="width:60%;background:var(--muted)"></div></div></td>
+            <td>DDR5-4800</td>
+          </tr>
+          <tr>
+            <td>PC5-41600</td>
+            <td>5200 MT/s</td>
+            <td>2600 MHz</td>
+            <td>41.6 GB/s<div class="bw-bar"><div class="bw-bar-fill" style="width:65%;background:var(--muted)"></div></div></td>
+            <td>DDR5-5200</td>
+          </tr>
+          <tr>
+            <td>PC5-44800</td>
+            <td>5600 MT/s</td>
+            <td>2800 MHz</td>
+            <td>44.8 GB/s<div class="bw-bar"><div class="bw-bar-fill" style="width:70%;background:var(--cyan)"></div></div></td>
+            <td>DDR5-5600</td>
+          </tr>
+          <tr>
+            <td>PC5-48000</td>
+            <td>6000 MT/s</td>
+            <td>3000 MHz</td>
+            <td>48.0 GB/s<div class="bw-bar"><div class="bw-bar-fill" style="width:75%;background:var(--cyan)"></div></div></td>
+            <td>DDR5-6000</td>
+          </tr>
+          <tr>
+            <td>PC5-51200</td>
+            <td>6400 MT/s</td>
+            <td>3200 MHz</td>
+            <td><strong>51.2 GB/s</strong><div class="bw-bar"><div class="bw-bar-fill" style="width:80%;background:var(--amber)"></div></div></td>
+            <td>DDR5-6400 (CSODIMM tier)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Speed Grade Bins — What the Letter After MT/s Means</h3>
+    <p>
+      The letter immediately after the frequency figure (e.g. the <strong>B</strong> in 6400B) is the speed grade tier. JEDEC defines these bins to standardize the timing profiles that modules from different manufacturers — Micron, SK Hynix, Samsung — must meet. The grade reflects manufacturing quality and die binning: not all DRAM chips that come off the fab can hit the same frequency at the same voltage.
+    </p>
+
+    <div class="grade-grid">
+      <div class="grade-cell header">Grade</div>
+      <div class="grade-cell header">Classification</div>
+      <div class="grade-cell header">Timing Profile</div>
+      <div class="grade-cell header">Typical Use</div>
+
+      <div class="grade-cell grade-a"><div class="grade-name">Class A</div></div>
+      <div class="grade-cell grade-a"><div class="grade-desc">Ultra-High Tier</div></div>
+      <div class="grade-cell grade-a"><div class="grade-desc">Tightest timings — latency-optimized for extreme XMP/EXPO profiles</div></div>
+      <div class="grade-cell grade-a"><div class="grade-desc">Enthusiast OC, workstation</div></div>
+
+      <div class="grade-cell grade-b"><div class="grade-name">Class B</div></div>
+      <div class="grade-cell grade-b"><div class="grade-desc">Standard/High Tier</div></div>
+      <div class="grade-cell grade-b"><div class="grade-desc">Mainstream performance — balanced for stability and speed. Most shipping DDR5 modules.</div></div>
+      <div class="grade-cell grade-b"><div class="grade-desc">Consumer, OEM, CSODIMM</div></div>
+
+      <div class="grade-cell grade-c"><div class="grade-name">Class C</div></div>
+      <div class="grade-cell grade-c"><div class="grade-desc">Value Tier</div></div>
+      <div class="grade-cell grade-c"><div class="grade-desc">Relaxed timings — high manufacturing yield, cost-optimized</div></div>
+      <div class="grade-cell grade-c"><div class="grade-desc">Budget, entry OEM configs</div></div>
+
+      <div class="grade-cell grade-n"><div class="grade-name">Class AN / BN</div></div>
+      <div class="grade-cell grade-n"><div class="grade-desc">Intermediate</div></div>
+      <div class="grade-cell grade-n"><div class="grade-desc">Specific variants for early silicon or narrow power profiles</div></div>
+      <div class="grade-cell grade-n"><div class="grade-desc">Specialized / industrial</div></div>
+    </div>
+
+    <p>
+      In practice, a Class B module at 6400 MT/s uses DRAM dies that have been characterized to reliably switch at 3200 MHz without exceeding the 1.1V limit. A lower-grade die running above its rated bin may encounter bit-flip errors — mitigated by on-die ECC but potentially leading to instability under sustained load.
+    </p>
+
+    <h3>Rank Count and Interleaving — The 0 vs 1 in the Profile</h3>
+    <p>
+      The third character in the profile segment encodes the <strong>rank count</strong>. A rank is a logically independent 64-bit group of DRAM chips on the module, each with its own chip-select signal. The value <strong>0</strong> = single rank (1R), <strong>1</strong> = dual rank (2R).
+    </p>
+    <p>
+      Single-rank modules are preferred for the highest-frequency operation — they present a lower capacitive load to the memory controller, resulting in cleaner signal eyes and better timing margins. Dual-rank modules trade some of that signal headroom for a throughput benefit: while the controller waits for data from Rank 0, it can issue a command to Rank 1 in parallel, hiding access latency.
+    </p>
+
+    <div class="interleave-wrap">
+      <div class="flow-title">// RANK INTERLEAVING — DUAL RANK HIDES LATENCY UNDER LOAD</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:var(--muted);margin-bottom:0.8rem;">Each block = one clock period. R0 = Rank 0 active. R1 = Rank 1 active. Wait = controller stalls.</div>
+      <div class="interleave-track">
+        <div class="interleave-label">1R (Single)</div>
+        <div class="int-block active-r0">R0</div>
+        <div class="int-block wait">—</div>
+        <div class="int-block wait">—</div>
+        <div class="int-block wait">—</div>
+        <div class="int-block active-r0">R0</div>
+        <div class="int-block wait">—</div>
+        <div class="int-block wait">—</div>
+        <div class="int-block wait">—</div>
+        <div class="int-block active-r0">R0</div>
+        <div class="int-block wait">—</div>
+        <div class="int-block wait">—</div>
+        <div class="int-block wait">—</div>
+      </div>
+      <div class="interleave-track">
+        <div class="interleave-label">2R (Dual)</div>
+        <div class="int-block active-r0">R0</div>
+        <div class="int-block active-r1">R1</div>
+        <div class="int-block active-r0">R0</div>
+        <div class="int-block active-r1">R1</div>
+        <div class="int-block active-r0">R0</div>
+        <div class="int-block active-r1">R1</div>
+        <div class="int-block active-r0">R0</div>
+        <div class="int-block active-r1">R1</div>
+        <div class="int-block active-r0">R0</div>
+        <div class="int-block active-r1">R1</div>
+        <div class="int-block active-r0">R0</div>
+        <div class="int-block active-r1">R1</div>
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:var(--muted);margin-top:0.6rem;">Dual rank fills the wait cycles by pipelining commands to the second rank — improving sustained throughput at the cost of slightly higher controller complexity and a larger electrical load.</div>
+    </div>
+
+    <div class="callout cyan">
+      <div class="callout-title">Looking Forward: CQDIMM (Quad-Rank)</div>
+      JEDEC is actively developing the <strong>CQDIMM</strong> (Clocked Quad-Rank DIMM) standard, which would use a rank count of <strong>2</strong> in this field position. These modules would use the CKD to manage the massive electrical load of four independent ranks, enabling single-module capacities of 128 GB or 256 GB without sacrificing high-frequency stability. Currently a roadmap item for server and AI workstation deployments — not yet available in consumer SODIMM form factor.
+    </div>
+
+    <h3>CAS Latency and the Timing Math</h3>
+    <p>
+      The <strong>12</strong> in the 1211 timing segment identifies the CAS Latency tier (t<sub>AA</sub>) — the number of clock cycles between a memory access request and the first data output. Higher CAS latency values on DDR5 can be misleading when compared to DDR4, because the clock cycles are much shorter at higher frequencies. Real-world access latency in nanoseconds is what matters:
+    </p>
+
+    <div class="math-block">
+      <div class="math-formula">
+        <span class="var">t<sub>AA</sub></span>
+        <span class="op"> (ns) = </span>
+        <span class="op">(</span><span class="var">CL</span><span class="op"> × </span><span class="num">2000</span><span class="op">) ÷ </span><span class="var">MT/s</span>
+      </div>
+      <div class="math-example">PC5-6400 CL46: <span>(46 × 2000) ÷ 6400 = 14.4 ns</span></div>
+      <div class="math-example">PC5-5600 CL46: <span>(46 × 2000) ÷ 5600 = 16.4 ns</span></div>
+      <div class="math-example">PC5-4800 CL40: <span>(40 × 2000) ÷ 4800 = 16.7 ns</span></div>
+    </div>
+
+    <p>
+      A 6400 MT/s module with a higher CL number can still have <em>lower real latency</em> than a 5600 MT/s module with a lower CL — because the faster clock more than compensates. The <strong>11</strong> following the CL encodes the secondary timing tier — t<sub>RCD</sub> (RAS to CAS Delay) and t<sub>RP</sub> (Row Precharge Time) in a compressed JEDEC notation that the firmware uses to set subtimings automatically at boot.
+    </p>
+
+    <h3>The XT Suffix — Temperature Hardening</h3>
+    <p>
+      For most consumer buyers, <strong>XT</strong> is benign — it means the module has been validated to operate reliably at case temperatures from −20°C to 95°C rather than the standard 0°C to 85°C. In a compact laptop or mini-PC with dense thermals, this extra 10°C of headroom is genuinely useful; DDR5 modules run hotter than DDR4 due to the additional heat generated by the on-module PMIC.
+    </p>
+    <p>
+      For industrial and embedded applications, XT (and the wider-range WT/5 suffix) imply structural enhancements beyond just the temperature specification. These include <strong>gold finger plating at 30μ" or higher</strong> to prevent corrosion and oxidation in humid environments, <strong>anti-sulfuration shielding</strong> on surface-mount components to resist hydrogen sulfide in industrial atmospheres, and <strong>Transient Voltage Suppressor (TVS) diodes</strong> to absorb over-current from power spikes common on industrial power grids. For standard consumer and prosumer use, these are value-adds rather than requirements.
+    </p>
+
+    <div class="table-wrap" style="margin-top:1rem">
+      <table>
+        <thead>
+          <tr>
+            <th>Suffix</th>
+            <th>Category</th>
+            <th>Operating Temp (T<sub>C</sub>)</th>
+            <th>Typical Deployment</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-family:'IBM Plex Mono',monospace">(None)</td>
+            <td>Commercial</td>
+            <td>0°C to 85°C</td>
+            <td>Desktops, standard laptops, typical office environments</td>
+          </tr>
+          <tr>
+            <td style="font-family:'IBM Plex Mono',monospace;color:var(--amber)">XT</td>
+            <td>Extended Temperature</td>
+            <td>−20°C to 95°C</td>
+            <td>Industrial PCs, SFF workstations, compact high-density chassis</td>
+          </tr>
+          <tr>
+            <td style="font-family:'IBM Plex Mono',monospace;color:var(--red)">WT / 5</td>
+            <td>Wide / Industrial</td>
+            <td>−40°C to 95°C</td>
+            <td>Outdoor edge computing, rugged embedded, aerospace</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Comparing All Three JEDEC Strings Side by Side</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th class="col-oem">SK Hynix OEM<br>PC5-4800B-SC0</th>
+            <th class="col-standard">Kingston Upgrade<br>PC5-5600B-SA0</th>
+            <th class="col-clocked">Micron CSODIMM<br>PC5-6400B-VA0</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Generation</td>
+            <td>PC5 (DDR5)</td>
+            <td>PC5 (DDR5)</td>
+            <td>PC5 (DDR5)</td>
+          </tr>
+          <tr>
+            <td>Data Rate</td>
+            <td>4800 MT/s</td>
+            <td>5600 MT/s</td>
+            <td><strong>6400 MT/s</strong></td>
+          </tr>
+          <tr>
+            <td>Form Factor Code</td>
+            <td><span class="badge muted">S — SODIMM</span></td>
+            <td><span class="badge cyan">S — SODIMM</span></td>
+            <td><span class="badge amber">V — CSODIMM</span></td>
+          </tr>
+          <tr>
+            <td>CKD Present</td>
+            <td><span class="badge red">No</span></td>
+            <td><span class="badge red">No</span></td>
+            <td><span class="badge green">Yes</span></td>
+          </tr>
+          <tr>
+            <td>Rank × Width</td>
+            <td><span class="badge red">1Rx16 (narrow)</span></td>
+            <td><span class="badge green">1Rx8 (full)</span></td>
+            <td><span class="badge green">1Rx8 (full)</span></td>
+          </tr>
+          <tr>
+            <td>CAS Latency (JEDEC)</td>
+            <td>CL10</td>
+            <td>CL11</td>
+            <td>CL12</td>
+          </tr>
+          <tr>
+            <td>On-Die ECC</td>
+            <td><span class="badge green">Yes</span></td>
+            <td><span class="badge green">Yes</span></td>
+            <td><span class="badge green">Yes</span></td>
+          </tr>
+          <tr>
+            <td>BIOS Compatibility</td>
+            <td><span class="badge green">Universal</span></td>
+            <td><span class="badge green">Universal</span></td>
+            <td><span class="badge amber">Needs CKD support</span></td>
+          </tr>
+          <tr>
+            <td>Relative BW for iGPU</td>
+            <td><span class="badge red">Baseline</span></td>
+            <td><span class="badge cyan">+17% over OEM</span></td>
+            <td><span class="badge amber">+33% over OEM</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- §6 — BIOS Warning -->
+  <section>
+    <div class="section-label">Section 07 — The BIOS Warning</div>
+    <h2>What That Blue Screen<br>Actually Means</h2>
+    <p>
+      When a CSODIMM or CUDIMM is installed in a system whose firmware doesn't fully support the CKD handshake, the BIOS stops before POST and displays this warning. Here is a faithful reproduction with line-by-line commentary:
+    </p>
+
+    <div class="bios-block">
+      <div class="scanlines"></div>
+      <p>This platform configuration includes <span class="bios-highlight">Clocked Unbuffered memory modules (aka CUDIMM)</span>.<br>
+      The installed processor does not support the operation of the modules at the specified data rate in JEDEC standard mode. The module may be functional in this system by configuring the CUDIMM to <span class="bios-highlight">Bypass Mode</span> and lowering the data rate.</p>
+      <p><span class="bios-highlight">[Y]</span> To continue with this configuration, please accept the Bypass Mode operation.<br>
+      <span class="bios-highlight">[N]</span> To decline this mode, the system will shutdown.</p>
+      <p>Note, that interoperability of this module is not guaranteed and the user assumes all risk while operating in this mode.</p>
+      <p>Please accept [Y] or decline [N] the experimental mode:</p>
+      <ul class="bios-options">
+        <li>Accept 3200 MT/s bypass operation and continue</li>
+        <li>Accept bypass operation and configure DDR timing via the AOD menu</li>
+        <li>Decline experimental operation</li>
+      </ul>
+    </div>
+    <div class="bios-caption">// HP ELITE MINI 8 — RYZEN AI 7 350 PRO — CUDIMM BYPASS WARNING — HP WOLF SECURITY BOOT SCREEN</div>
+
+    <p style="margin-top:1.5rem">
+      <strong>"The installed processor does not support... JEDEC standard mode"</strong> — The memory controller in the Ryzen AI 7 350 Pro doesn't have microcode to delegate clock control to the CKD chip on the CSODIMM. It can't run the module in its intended operating mode.
+    </p>
+    <p>
+      <strong>"Bypass Mode and lowering the data rate"</strong> — The BIOS disables the CKD chip and forces the CPU to drive the clock directly — exactly as with a standard SODIMM. But the CPU can't push a clean signal at 6400 MT/s, so it drops all the way to 3200 MT/s.
+    </p>
+    <p>
+      <strong>"3200 MT/s"</strong> — Not 6400, not 5600. Half the rated speed, and 33% slower than the 4800 MT/s OEM module you might have been replacing. On an APU platform that relies on memory bandwidth for integrated GPU performance, this is a severe regression.
+    </p>
+
+    <div class="bypass-grid">
+      <div class="bypass-card recommended">
+        <div class="bypass-key">Y→1</div>
+        <div class="bypass-card-title">Accept 3200 MT/s Bypass</div>
+        <p>CKD chip disabled. System boots immediately at 3200 MT/s. Safe and stable. Best option to get into Windows right now while you decide on next steps.</p>
+      </div>
+      <div class="bypass-card advanced">
+        <div class="bypass-key">Y→2</div>
+        <div class="bypass-card-title">Bypass + Configure via AOD</div>
+        <p>Bypass the CKD and manually tune DDR timings using AMD Overclocking Dashboard. Can recover some speed — requires expertise and risks instability if timings are wrong.</p>
+      </div>
+      <div class="bypass-card decline">
+        <div class="bypass-key">N</div>
+        <div class="bypass-card-title">Decline / Shutdown</div>
+        <p>System powers off. No changes made. Use this if you intend to immediately swap the CSODIMM for a compatible standard SODIMM (e.g. Kingston PC5-5600B-SA0).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- §7 — Buying Guide -->
+  <section>
+    <div class="section-label">Section 08 — Platform Compatibility</div>
+    <h2>Which Platforms<br>Actually Support <em style="color:var(--amber)">CSODIMM</em>?</h2>
+    <p>
+      The CSODIMM/CUDIMM standard requires explicit cooperation between the DRAM module, the CPU's memory controller, and the system firmware. The BIOS must know how to query the CKD's device ID via the SPD Hub sideband bus, apply the correct initialization sequence, and hand off clock control to the on-module driver. This is not automatic — it requires deliberate platform design.
+    </p>
+
+    <div class="platform-grid">
+      <div class="platform-card supported">
+        <div class="platform-card-title">Full CKD Support</div>
+        <div class="platform-card-sub">CUDIMM / CSODIMM NATIVE</div>
+        <p>Intel Arrow Lake (Core Ultra Series 2, 2024+) was among the first consumer platforms explicitly designed for CUDIMM at 6400 MT/s. AMD EPYC Genoa and Turin support the server equivalent. Next-gen Ryzen and Core Ultra platforms (2025+) are expanding coverage as BIOS matures.</p>
+      </div>
+      <div class="platform-card partial">
+        <div class="platform-card-title">Bypass Mode Only</div>
+        <div class="platform-card-sub">CSODIMM DETECTED, CKD UNSUPPORTED</div>
+        <p>Current-gen Ryzen AI (300 series, e.g. Ryzen AI 7 350 Pro) and many 2023–2024 platforms detect CSODIMM modules but lack the firmware microcode to initialize the CKD. The result is the bypass mode warning — the CKD is disabled and speed drops to 3200 MT/s. BIOS updates may add support over time.</p>
+      </div>
+      <div class="platform-card unsupported">
+        <div class="platform-card-title">Standard DDR5 Only</div>
+        <div class="platform-card-sub">INSTALL STANDARD SODIMM</div>
+        <p>Most 2022–2023 DDR5 platforms were designed before CSODIMM was a shipping product. These systems have no CKD awareness in firmware. A CSODIMM may or may not trigger bypass mode — some will simply fail to POST. Standard SA0/SC0 SODIMM is the correct choice.</p>
+      </div>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-title">How to Verify Before Buying</div>
+      The safest check: search your specific motherboard or system model alongside "CUDIMM," "CSODIMM," or "CKD support" in the manufacturer's memory compatibility list (QVL). If the QVL only lists SA0 or SC0 profile modules, don't install a VA0. If the QVL explicitly lists VA0 or PC5-6400B-VA0 modules, your firmware has CKD support. For laptops and mini-PCs, the OEM spare parts list (HP, Lenovo, Dell service manuals) will indicate which JEDEC profile is approved — and those lists are the most reliable signal of actual platform compatibility.
+    </div>
+
+    <p>
+      The module ecosystem behind CSODIMM is built on standardized CKD silicon from companies like <strong>Montage Technology</strong> and <strong>Rambus</strong>. When a platform declares CSODIMM support, it is specifically declaring support for the JESD301 CKD specification — the firmware knows the Device ID of compatible CKD chips and can load the correct initialization parameters. This standardization means that a Micron CSODIMM with a Montage CKD and a Samsung CSODIMM with a Rambus CKD should initialize identically on a compliant platform, preventing the proprietary lock-in that plagued earlier high-performance memory eras.
+    </p>
+
+    <table class="ecosystem-table">
+      <thead>
+        <tr>
+          <th>Module Component</th>
+          <th>Role in the JEDEC Ecosystem</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>DRAM Dies</td>
+          <td>Provide raw storage. Each die includes mandatory on-die ECC (ODECC) that corrects single-bit errors internally before data exits the chip.</td>
+        </tr>
+        <tr>
+          <td>PMIC</td>
+          <td>Regulates bulk input voltage down to the 1.1V V<sub>DD</sub>/V<sub>DDQ</sub> rails. Improves signal cleanliness vs. motherboard VRM delivery. Adds heat.</td>
+        </tr>
+        <tr>
+          <td>CKD (CSODIMM only)</td>
+          <td>Receives the CPU's clock signal, regenerates it cleanly, and distributes it locally to the DRAM chips. Based on JESD301 spec. Enabled by Montage or Rambus silicon.</td>
+        </tr>
+        <tr>
+          <td>SPD Hub</td>
+          <td>Communicates module identity, timing parameters, thermal data, and CKD device ID to the BIOS over I3C sideband bus at boot. The BIOS queries this to know how to initialize the module.</td>
+        </tr>
+        <tr>
+          <td>BIOS / Firmware</td>
+          <td>Decodes the JEDEC string, queries the SPD Hub, loads CKD initialization parameters, trains the memory interface. Must explicitly support the VA0 profile for CSODIMM to run at full speed.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- §9 — Buying Guide -->
+  <section>
+    <div class="section-label">Section 09 — Buying & Selling Guide</div>
+    <h2>Which Module<br>Should You Buy?</h2>
+    <p>
+      The right answer depends on your platform. When buying secondhand on eBay, the JEDEC string is your truth — it overrides any listing title. When selling, include the full part number and JEDEC string in the listing description.
+    </p>
+
+    <div class="guide-grid">
+      <div class="guide-card standard">
+        <div class="guide-card-head">✓ Buy Standard DDR5-SODIMM</div>
+        <ul class="guide-list">
+          <li>You're upgrading any laptop, mini-PC, or workstation from 2023–2025 without explicitly confirmed CUDIMM support</li>
+          <li>Your BIOS does not list CKD or Clocked Unbuffered DIMM support</li>
+          <li>You want guaranteed plug-and-play with zero BIOS warnings</li>
+          <li>Target PC5-5600B-SA0 or PC5-5600B-SC0 for mainstream upgrade performance</li>
+          <li>If upgrading from a 1Rx16 config, moving to 1Rx8 at the same or higher speed is a meaningful gain even before the clock difference</li>
+          <li>If replacing a 1Rx16 OEM stick, upgrading to 1Rx8 at the same speed is still a meaningful gain</li>
+        </ul>
+      </div>
+      <div class="guide-card clocked">
+        <div class="guide-card-head">✓ Buy CSODIMM / CUDIMM</div>
+        <ul class="guide-list">
+          <li>Your motherboard or system BIOS explicitly lists CUDIMM or CSODIMM support in its memory compatibility documentation</li>
+          <li>You're building or upgrading a high-bandwidth APU system designed for 6400+ MT/s (next-gen platforms, 2025+)</li>
+          <li>You need maximum integrated GPU bandwidth for local AI inference or gaming on an APU</li>
+          <li>Look for PC5-6400B-VA0 in the JEDEC string to confirm CKD is present</li>
+          <li>Buying on eBay: verify the label explicitly says "DDR5 CSODIMM" — not just "DDR5 SODIMM"</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout amber">
+      <div class="callout-title">eBay Buying / Selling Tips</div>
+      <strong>Buying:</strong> Search by the full Micron or manufacturer PN (e.g. "MTC8C1084S1VC64BD1" or "HMCG66MEBSA092N") for exact matches. Avoid listings that only show a speed grade without a PN — you can't verify what you're getting. The JEDEC profile code (SA0, VA0, SC0) in the description is a major authenticity indicator.<br><br>
+      <strong>Selling:</strong> Always photograph the label clearly and include the full PN, JEDEC string, and module type (SODIMM vs CSODIMM) in your description. Buyers of CSODIMM will pay a premium for verified VA0 modules. Misrepresenting a standard SA0 as equivalent to a VA0 at the same speed is a common listing error that leads to disputes.
+    </div>
+  </section>
+
+  <!-- §8 — Glossary -->
+  <section>
+    <div class="section-label">Section 10 — Quick Reference Glossary</div>
+    <h2>Terms Defined</h2>
+
+    <div class="glossary">
+      <div class="glossary-title">// TERM DEFINITIONS</div>
+      <div class="glossary-grid">
+        <div class="glossary-item">
+          <div class="glossary-term">DDR5-SODIMM</div>
+          <div class="glossary-def">Standard Small Outline DIMM. The baseline DDR5 form factor for laptops and mini-PCs. Clock driven entirely by the CPU. JEDEC profile S. Plug-and-play on all DDR5 platforms.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">CSODIMM</div>
+          <div class="glossary-def">Clocked SODIMM. Same footprint as SODIMM but with an on-module CKD chip that regenerates the clock signal locally. JEDEC profile V. Requires platform firmware support to run at full speed.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">CUDIMM</div>
+          <div class="glossary-def">Clocked Unbuffered DIMM. Desktop full-length version of a CSODIMM. Same CKD technology in a standard desktop DIMM form factor. JEDEC profile C.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">CKD (Client Clock Driver)</div>
+          <div class="glossary-def">The small IC on a CSODIMM that receives the CPU's clock signal, regenerates it cleanly, and distributes it locally to the DRAM chips. Defined by JESD301. Implemented in silicon by Montage Technology and Rambus.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">PMIC (Power Management IC)</div>
+          <div class="glossary-def">An on-module power regulator mandatory on all DDR5. Receives bulk voltage and regulates it to the 1.1V rails the DRAM chips need. Replaced the motherboard VRM's role from DDR4. Adds minor thermal load to the module.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">SPD Hub</div>
+          <div class="glossary-def">A DDR5-mandatory component combining the Serial Presence Detect EEPROM, thermal sensors, and I3C sideband bus interface. The BIOS queries it at boot for module identity, timings, and (for CSODIMM) the CKD Device ID needed to initialize the clock driver.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Dual Subchannel</div>
+          <div class="glossary-def">DDR5 architectural feature splitting each module into two independent 32-bit subchannels, each with its own command/address bus. Total width is still 64-bit, but concurrent command scheduling reduces effective latency under multi-threaded load.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">On-Die ECC (ODECC)</div>
+          <div class="glossary-def">Mandatory per JESD79-5. Corrects single-bit errors inside each DRAM die before data exits. Present on every DDR5 module regardless of price or label. Distinct from full ECC SODIMM, which additionally protects the data bus between RAM and CPU.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">ECC SODIMM</div>
+          <div class="glossary-def">A separate, more expensive module class with an additional chip correcting errors across the full 72-bit memory bus. Requires a platform with ECC controller support — workstation and server only. Not to be confused with the on-die ECC present on all DDR5.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">1Rx8 vs 1Rx16</div>
+          <div class="glossary-def">Rank and chip width. 1Rx8 = 8 chips × 8-bit = 64-bit with full internal parallelism. 1Rx16 = 4 chips × 16-bit = same 64-bit total but fewer chips and narrower internal access paths. 1Rx8 provides better bandwidth and is preferred for APU and memory-intensive workloads.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Rank Interleaving</div>
+          <div class="glossary-def">A controller technique with dual-rank (2R) modules: commands are pipelined between Rank 0 and Rank 1, hiding access latency. Improves sustained throughput but increases electrical load, which can limit achievable frequencies vs. single-rank modules.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">CQDIMM</div>
+          <div class="glossary-def">Clocked Quad-Rank DIMM — an emerging JEDEC standard using a CKD to manage four memory ranks. Targets 128–256 GB single-module capacities. Uses rank code 2 in the JEDEC profile string. Currently a server/AI workstation roadmap item, not yet shipping in consumer SODIMM form.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">t<sub>AA</sub> / CAS Latency</div>
+          <div class="glossary-def">Clock cycles between read request and first data out. Real latency (ns) = (CL × 2000) ÷ MT/s. A higher CL at a faster MT/s can have lower actual latency than a lower CL at a slower speed — making raw CL comparisons across speed grades misleading.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Speed Grade (Class A/B/C)</div>
+          <div class="glossary-def">The letter after the MT/s figure in the JEDEC string. Denotes the die binning tier: A = tightest timings, enthusiast; B = mainstream high-performance (most shipping modules); C = relaxed timings, cost-optimized. Higher grades require better-yielding DRAM dies.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">Bypass Mode</div>
+          <div class="glossary-def">BIOS fallback that disables the CKD on a CSODIMM, forcing the CPU to drive the clock directly as with a standard SODIMM. Results in a severe speed drop — typically to 3200 MT/s — because the CPU cannot maintain a clean clock signal at 6400 MT/s without CKD assistance.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">TVS Diode</div>
+          <div class="glossary-def">Transient Voltage Suppressor — a protective component on industrial-grade DDR5 modules. Absorbs over-current from power spikes and ESD events. Common on XT or WT-rated modules alongside 30μ" gold fingers and anti-sulfuration shielding. Rarely present on standard consumer SODIMM.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">MT/s (Megatransfers/sec)</div>
+          <div class="glossary-def">The correct data rate unit for DDR5. DDR5-5600 = 5600 MT/s. The physical clock runs at half the MT/s value (5600 MT/s = 2800 MHz clock) due to double data rate. Not interchangeable with MHz.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">JEDEC Profile Code</div>
+          <div class="glossary-def">The three-character segment in the part number string (e.g. SA0, VA0). First letter: form factor and CKD presence (S = standard SODIMM, V = CSODIMM, C = CUDIMM). Second letter: clock driver type reference. Third digit: rank count (0 = 1R, 1 = 2R, 2 = 4R).</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">JESD79-5 / JESD401-5B</div>
+          <div class="glossary-def">The key JEDEC specifications for DDR5. JESD79-5 defines the core electrical and logical standard including mandatory ODECC. JESD401-5B defines the module labeling nomenclature — the anatomy of every part number string on every compliant DDR5 module.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">QVL (Qualified Vendor List)</div>
+          <div class="glossary-def">The list of RAM tested and certified by a motherboard or system OEM. Always cross-reference before buying, especially for CSODIMM. A VA0 module not on the QVL is a compatibility risk regardless of JEDEC compliance.</div>
+        </div>
+        <div class="glossary-item">
+          <div class="glossary-term">AOD (AMD Overclocking Dashboard)</div>
+          <div class="glossary-def">AMD's in-BIOS and in-OS tool for manually setting memory timings, frequencies, and voltages. Used in CSODIMM Bypass Mode to manually recover some speed when CKD support is absent. Requires expertise — incorrect subtimings risk instability.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+</main>
+
+<footer>
+  <span>DDR5 MEMORY CONSUMER GUIDE — SODIMM · CSODIMM · CUDIMM · ON-DIE ECC</span>
+  <span>JEDEC JESD79-5 / JESD79-5B · CKD · BYPASS MODE · BASED ON REAL HARDWARE</span>
+</footer>
+
+</body>
+</html>
